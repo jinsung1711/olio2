@@ -144,7 +144,7 @@ def app():
                 }
                 try:
                     db.child("patients").child(user_id).push(data, st.session_state.user["idToken"])
-                    st.session_state.last_saved_data = data  # ✅ PDF용 저장
+                    st.session_state.last_saved_data = data
                     st.success("✅ 저장 완료")
                 except Exception as e:
                     st.error(f"❌ 저장 실패: {e}")
@@ -170,23 +170,64 @@ def app():
 
                         FONT_PATH = "NanumGothic.ttf"
                         pdf = PDF()
-                        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)  # ✅ 폰트 먼저 등록
-                        pdf.add_page()  # ✅ 그리고 나서 페이지 추가
+                        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+                        pdf.add_page()
                         pdf.chapter_body(st.session_state.last_saved_data)
 
-                        pdf_output = pdf.output(dest='S').encode('latin1')  # ✅ 문자열로 추출하여 바이너리 인코딩
+                        pdf_output = pdf.output(dest='S').encode('latin1')
                         b64 = base64.b64encode(pdf_output).decode()
                         href = f'<a href="data:application/octet-stream;base64,{b64}" download="{st.session_state.last_saved_data["name"]}_{st.session_state.last_saved_data["visit_date"]}_chart.pdf">📄 PDF 다운로드</a>'
                         st.markdown(href, unsafe_allow_html=True)
 
-    # tab2, tab3, tab4는 기존과 동일
     with tab2:
         st.subheader("🔍 환자 검색 및 기록 보기")
-        ...
+        search_name = st.text_input("🔎 검색할 환자 이름")
+        if st.button("검색하기"):
+            results = db.child("patients").child(user_id).get(st.session_state.user["idToken"]).val()
+            if results:
+                filtered = {k: v for k, v in results.items() if v.get("name") == search_name}
+                if not filtered:
+                    msg = st.empty()
+                    msg.warning("🔍 검색 결과가 없습니다.")
+                    time.sleep(2)
+                    msg.empty()
+                else:
+                    for key, r in filtered.items():
+                        with st.expander(f"👤 {r.get('name', '')} ({r.get('birth', '')})"):
+                            st.write(f"🗓 내원일: {r.get('visit_date', '')}")
+                            st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
+                            st.write(f"📋 PI: {r.get('pi', '')}")
+                            st.write(f"🔍 OS: {r.get('os', '')}")
+                            st.write(f"🗒 기타 소견: {r.get('etc', '')}")
+                            st.write(f"💊 처방: {r.get('prescription', '')}")
+                            st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
+                            st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
+                            st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
+                            st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
 
     with tab3:
         st.subheader("📋 전체 환자 리스트")
-        ...
+        results = db.child("patients").child(user_id).get(st.session_state.user["idToken"]).val()
+        if results:
+            grouped = defaultdict(list)
+            for key, r in results.items():
+                birth = r.get("birth", "")
+                grouped[(r.get("name", ""), birth)].append((key, r))
+
+            for (name, birth), entries in grouped.items():
+                with st.expander(f"👤 {name} ({birth}) - {len(entries)}건"):
+                    for key, r in entries:
+                        st.markdown("---")
+                        st.write(f"🗓 내원일: {r.get('visit_date', '')}")
+                        st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
+                        st.write(f"📋 PI: {r.get('pi', '')}")
+                        st.write(f"🔍 OS: {r.get('os', '')}")
+                        st.write(f"🗒 기타 소견: {r.get('etc', '')}")
+                        st.write(f"💊 처방: {r.get('prescription', '')}")
+                        st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
+                        st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
+                        st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
+                        st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
 
     with tab4:
         delete_account()
@@ -196,3 +237,4 @@ if st.session_state.user:
     app()
 else:
     login()
+
