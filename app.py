@@ -54,7 +54,7 @@ def signup():
             db.child("users").child(user_id).set({"name": name, "email": email}, token=id_token)
 
             st.success("✅ 회원가입 성공! 로그인 해주세요.")        
-    except Exception as e:
+        except Exception as e:
               if "EMAIL_EXISTS" in str(e):
                   st.warning("⚠️ 이미 가입된 이메일입니다. 로그인해주세요.")
               else:
