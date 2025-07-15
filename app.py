@@ -170,8 +170,8 @@ def app():
 
                         FONT_PATH = "NanumGothic.ttf"
                         pdf = PDF()
-                        pdf.add_page()
-                        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+                        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)  # ✅ 폰트 먼저 등록
+                        pdf.add_page()  # ✅ 그리고 나서 페이지 추가
                         pdf.chapter_body(st.session_state.last_saved_data)
 
                         pdf_output = BytesIO()
