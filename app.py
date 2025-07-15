@@ -98,6 +98,28 @@ def login():
     elif menu == "회원가입":
         signup()
 
+def generate_pdf_bytes(data):
+    class PDF(FPDF):
+        def header(self):
+            self.set_font("NanumGothic", "", 14)
+            self.cell(200, 10, "환자 차트 기록", ln=True, align="C")
+            self.ln(10)
+
+        def chapter_body(self, data):
+            self.set_font("NanumGothic", "", 12)
+            for k, v in data.items():
+                if isinstance(v, bool):
+                    v = "O" if v else "X"
+                self.multi_cell(0, 10, f"{k}: {v}")
+            self.ln()
+
+    FONT_PATH = "NanumGothic.ttf"
+    pdf = PDF()
+    pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+    pdf.add_page()
+    pdf.chapter_body(data)
+    return pdf.output(dest="S").encode("latin1")
+
 def app():
     st.title("🧪 환자 차트 기록 시스템 olio")
 
@@ -149,13 +171,6 @@ def app():
                 except Exception as e:
                     st.error(f"❌ 저장 실패: {e}")
 
-        if "last_saved_data" in st.session_state:
-            with st.container():
-                col1, col2, col3 = st.columns([1, 1, 2])
-                with col3:
-                    if st.button("📄 PDF로 저장", key="pdf_save_button"):
-                        generate_pdf(st.session_state.last_saved_data)
-
     with tab2:
         st.subheader("🔍 환자 검색 및 기록 보기")
         search_name = st.text_input("🔎 검색할 환자 이름")
@@ -182,8 +197,15 @@ def app():
                             st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
                             st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
 
-                            if st.button(f"📄 PDF로 저장 - {r.get('visit_date')}", key=f"pdf_button_{key}"):
-                                generate_pdf(r)
+                            pdf_bytes = generate_pdf_bytes(r)
+                            filename = f"{r.get('name', 'patient')}_{r.get('visit_date', 'visit')}_chart.pdf"
+                            st.download_button(
+                                label="📄 PDF 다운로드",
+                                data=pdf_bytes,
+                                file_name=filename,
+                                mime="application/pdf",
+                                key=f"download_button_{key}"
+                            )
 
     with tab3:
         st.subheader("📋 전체 환자 리스트")
@@ -212,35 +234,9 @@ def app():
     with tab4:
         delete_account()
 
-def generate_pdf(data):
-    class PDF(FPDF):
-        def header(self):
-            self.set_font("NanumGothic", "", 14)
-            self.cell(200, 10, "환자 차트 기록", ln=True, align="C")
-            self.ln(10)
-
-        def chapter_body(self, data):
-            self.set_font("NanumGothic", "", 12)
-            for k, v in data.items():
-                if isinstance(v, bool):
-                    v = "O" if v else "X"
-                self.multi_cell(0, 10, f"{k}: {v}")
-            self.ln()
-
-    FONT_PATH = "NanumGothic.ttf"
-    pdf = PDF()
-    pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
-    pdf.add_page()
-    pdf.chapter_body(data)
-
-    pdf_output = pdf.output(dest='S').encode('latin1')
-    b64 = base64.b64encode(pdf_output).decode()
-    filename = f"{data.get('name', 'patient')}_{data.get('visit_date', 'visit')}_chart.pdf"
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}">📄 PDF 다운로드</a>'
-    st.markdown(href, unsafe_allow_html=True)
-
 # 실행
 if st.session_state.user:
     app()
 else:
     login()
+
