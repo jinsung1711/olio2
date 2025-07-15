@@ -86,12 +86,10 @@ def login():
             except Exception as e:
                 st.session_state.login_success = False
                 st.session_state.login_error = True
+                st.rerun()
 
         if st.session_state.login_success:
             st.success(f"✅ 로그인 성공! {st.session_state.user_name}님 환영합니다.")
-        elif st.session_state.login_error:
-            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
-            st.session_state.login_error = False
 
     elif menu == "회원가입":
         signup()
