@@ -110,11 +110,17 @@ def app():
             name = st.text_input("환자 이름")
             birth = st.date_input("생년월일", value=datetime.date(2000, 1, 1), min_value=datetime.date(1900, 1, 1))
             visit_date = st.date_input("내원일")
-            cc = st.text_input("주호소 (Chief Complaint)")
-            pi = st.text_area("PI")
-            os = st.text_area("OS")
+            cc = st.text_input("CC (Chief Complaint)")
+            st.markdown("PI (현재 질병에 대한 병력/ 예: 통증 발생 시기, 양상, 경과 등)")
+            pi = st.text_area("PI (Present Illness)")
+            st.markdown("OS (기타 증상 또는 과거력)")
+            os = st.text_area("OS (Other Symptoms)")
             etc = st.text_area("기타 소견")
             prescription = st.text_area("처방")
+            ht = st.checkbox("고혈압")
+            dm = st.checkbox("당뇨")
+            hl = st.checkbox("고지혈증")
+            hd = st.checkbox("심장 질환")
 
             submitted = st.form_submit_button("저장하기")
             if submitted:
@@ -126,7 +132,11 @@ def app():
                     "pi": pi,
                     "os": os,
                     "etc": etc,
-                    "prescription": prescription
+                    "prescription": prescription,
+                    "hypertension": ht,
+                    "diabetes": dm,
+                    "hyperlipidemia": hl,
+                    "heart_disease": hd
                 }
                 try:
                     db.child("patients").child(user_id).push(data, st.session_state.user["idToken"])
@@ -157,11 +167,18 @@ def app():
                     for key, r in results.items():
                         with st.expander(f"👤 {r.get('name', '')} ({r.get('birth', '')})"):
                             st.write(f"🗓 내원일: {r.get('visit_date', '')}")
-                            st.write(f"📋 주호소 (CC): {r.get('chief_complaint', '')}")
+                            st.write(f"📋 주소증 (CC): {r.get('chief_complaint', '')}")
                             st.write(f"📋 PI: {r.get('pi', '')}")
                             st.write(f"🔍 OS: {r.get('os', '')}")
                             st.write(f"🗒 기타 소견: {r.get('etc', '')}")
                             st.write(f"💊 처방: {r.get('prescription', '')}")
+                            chronic = []
+                            if r.get("hypertension"): chronic.append("고혈압")
+                            if r.get("diabetes"): chronic.append("당뇨")
+                            if r.get("hyperlipidemia"): chronic.append("고지혈증")
+                            if r.get("heart_disease"): chronic.append("심장 질환")
+                            if chronic:
+                                st.write(f"🏥 기저질환: {', '.join(chronic)}")
 
                             if st.button(f"❌ 삭제하기 - {r.get('name', '')}", key=f"delete_{key}"):
                                 try:
@@ -191,7 +208,7 @@ def app():
                     display_name, display_birth = unique_key.rsplit("_", 1)
                     with st.expander(f"👤 {display_name} ({display_birth}) - {len(records)}건"):
                         for r in records:
-                            st.markdown(f"- 🗓 내원일: {r.get('visit_date', '')} | 📋 주호소: {r.get('chief_complaint', '')}")
+                            st.markdown(f"- 🗓 내원일: {r.get('visit_date', '')} | 📋 CC: {r.get('chief_complaint', '')}")
             else:
                 st.info("등록된 환자가 없습니다.")
         except Exception as e:
@@ -205,3 +222,4 @@ if st.session_state.user:
     app()
 else:
     login()
+
