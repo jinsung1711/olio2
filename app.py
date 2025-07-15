@@ -3,6 +3,9 @@ import pyrebase
 import datetime
 import time
 from collections import defaultdict
+from fpdf import FPDF
+from io import BytesIO
+import base64
 
 # Firebase 설정
 firebaseConfig = {
@@ -110,10 +113,10 @@ def app():
             name = st.text_input("환자 이름")
             birth = st.date_input("생년월일", value=datetime.date(2000, 1, 1), min_value=datetime.date(1900, 1, 1))
             visit_date = st.date_input("내원일")
-            cc = st.text_input("CC (Chief Complaint)")
-            st.markdown("PI (현재 질병에 대한 병력/ 예: 통증 발생 시기, 양상, 경과 등)")
+            cc = st.text_input("주호소 (Chief Complaint)")
+            st.markdown("PI는 현재 질병에 대한 병력입니다. 예: 통증 발생 시기, 양상, 경과 등")
             pi = st.text_area("PI (Present Illness)")
-            st.markdown("OS (기타 증상 또는 과거력)")
+            st.markdown("OS는 기타 증상 또는 과거력 등 참고사항입니다.")
             os = st.text_area("OS (Other Symptoms)")
             etc = st.text_area("기타 소견")
             prescription = st.text_area("처방")
@@ -141,6 +144,46 @@ def app():
                 try:
                     db.child("patients").child(user_id).push(data, st.session_state.user["idToken"])
                     st.success("✅ 저장 완료")
+
+                    class PDF(FPDF):
+                        def header(self):
+                            self.set_font("Arial", "B", 14)
+                            self.cell(200, 10, "환자 차트 기록", ln=True, align="C")
+                            self.ln(10)
+
+                        def chapter_body(self, data):
+                            self.set_font("Arial", "", 12)
+                            for k, v in data.items():
+                                if isinstance(v, bool):
+                                    v = "O" if v else "X"
+                                self.multi_cell(0, 10, f"{k}: {v}")
+                            self.ln()
+
+                    pdf_data = {
+                        "이름": name,
+                        "생년월일": birth,
+                        "내원일": visit_date,
+                        "주호소": cc,
+                        "PI": pi,
+                        "OS": os,
+                        "기타 소견": etc,
+                        "처방": prescription,
+                        "고혈압": ht,
+                        "당뇨": dm,
+                        "고지혈증": hl,
+                        "심장 질환": hd
+                    }
+
+                    pdf = PDF()
+                    pdf.add_page()
+                    pdf.chapter_body(pdf_data)
+
+                    pdf_output = BytesIO()
+                    pdf.output(pdf_output)
+                    b64 = base64.b64encode(pdf_output.getvalue()).decode()
+                    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{name}_{visit_date}_chart.pdf">📄 PDF 다운로드</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+
                 except Exception as e:
                     st.error(f"❌ 저장 실패: {e}")
 
@@ -167,7 +210,7 @@ def app():
                     for key, r in results.items():
                         with st.expander(f"👤 {r.get('name', '')} ({r.get('birth', '')})"):
                             st.write(f"🗓 내원일: {r.get('visit_date', '')}")
-                            st.write(f"📋 주소증 (CC): {r.get('chief_complaint', '')}")
+                            st.write(f"📋 주호소 (CC): {r.get('chief_complaint', '')}")
                             st.write(f"📋 PI: {r.get('pi', '')}")
                             st.write(f"🔍 OS: {r.get('os', '')}")
                             st.write(f"🗒 기타 소견: {r.get('etc', '')}")
@@ -208,7 +251,7 @@ def app():
                     display_name, display_birth = unique_key.rsplit("_", 1)
                     with st.expander(f"👤 {display_name} ({display_birth}) - {len(records)}건"):
                         for r in records:
-                            st.markdown(f"- 🗓 내원일: {r.get('visit_date', '')} | 📋 CC: {r.get('chief_complaint', '')}")
+                            st.markdown(f"- 🗓 내원일: {r.get('visit_date', '')} | 📋 주호소: {r.get('chief_complaint', '')}")
             else:
                 st.info("등록된 환자가 없습니다.")
         except Exception as e:
@@ -222,4 +265,3 @@ if st.session_state.user:
     app()
 else:
     login()
-
