@@ -42,12 +42,19 @@ def signup():
 
     if st.button("회원가입"):
         try:
+            # 1️⃣ 계정 생성
             user = auth.create_user_with_email_and_password(email, password)
+
+            # 2️⃣ 곧바로 로그인해서 최신 idToken 확보
+            user = auth.sign_in_with_email_and_password(email, password)
             user_id = user["localId"]
             id_token = user["idToken"]
+
+            # 3️⃣ 사용자 DB 등록
             db.child("users").child(user_id).set({"name": name, "email": email}, token=id_token)
-            st.success("✅ 회원가입 성공! 로그인 해주세요.")
-        except Exception as e:
+
+            st.success("✅ 회원가입 성공! 로그인 해주세요.")        
+    except Exception as e:
               if "EMAIL_EXISTS" in str(e):
                   st.warning("⚠️ 이미 가입된 이메일입니다. 로그인해주세요.")
               else:
