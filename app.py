@@ -126,12 +126,16 @@ def app():
 
             if all_data:
                 for key, record in all_data.items():
-                    grouped_data[record.get("name", "")].append(record)
+                    name = record.get("name", "")
+                    birth = record.get("birth", "")
+                    unique_key = f"{name}_{birth}"
+                    grouped_data[unique_key].append(record)
 
-                for name, records in grouped_data.items():
-                    with st.expander(f"👤 {name} ({len(records)}건)"):
+                for unique_key, records in grouped_data.items():
+                    display_name, display_birth = unique_key.rsplit("_", 1)
+                    with st.expander(f"👤 {display_name} ({display_birth}) - {len(records)}건"):
                         for r in records:
-                            st.markdown(f"- 생년월일: {r.get('birth', '')} | 내원일: {r.get('visit_date', '')}")
+                            st.markdown(f"- 🗓 내원일: {r.get('visit_date', '')} | 📋 주호소: {r.get('chief_complaint', '')}")
             else:
                 st.info("등록된 환자가 없습니다.")
         except Exception as e:
