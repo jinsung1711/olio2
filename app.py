@@ -204,10 +204,16 @@ def app():
                 else:
                     for key, r in filtered.items():
                         with st.expander(f"👤 {r.get('name', '')} ({r.get('birth', '')})"):
-                            for label, value in r.items():
-                                if isinstance(value, bool):
-                                    value = "✅" if value else "❌"
-                                st.write(f"{label}: {value}")
+                            st.write(f"🗓 내원일: {r.get('visit_date', '')}")
+                            st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
+                            st.write(f"📋 PI: {r.get('pi', '')}")
+                            st.write(f"🔍 OS: {r.get('os', '')}")
+                            st.write(f"🗒 기타 소견: {r.get('etc', '')}")
+                            st.write(f"💊 처방: {r.get('prescription', '')}")
+                            st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
+                            st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
+                            st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
+                            st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
 
                             pdf_bytes = generate_pdf_bytes(r)
                             filename = f"{r.get('name', 'patient')}_{r.get('visit_date', 'visit')}_chart.pdf"
@@ -232,10 +238,16 @@ def app():
                 with st.expander(f"👤 {name} ({birth}) - {len(entries)}건"):
                     for key, r in entries:
                         st.markdown("---")
-                        for label, value in r.items():
-                            if isinstance(value, bool):
-                                value = "✅" if value else "❌"
-                            st.write(f"{label}: {value}")
+                        st.write(f"🗓 내원일: {r.get('visit_date', '')}")
+                        st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
+                        st.write(f"📋 PI: {r.get('pi', '')}")
+                        st.write(f"🔍 OS: {r.get('os', '')}")
+                        st.write(f"🗒 기타 소견: {r.get('etc', '')}")
+                        st.write(f"💊 처방: {r.get('prescription', '')}")
+                        st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
+                        st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
+                        st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
+                        st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
 
     with tab4:
         delete_account()
