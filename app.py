@@ -174,10 +174,8 @@ def app():
                         pdf.add_page()  # ✅ 그리고 나서 페이지 추가
                         pdf.chapter_body(st.session_state.last_saved_data)
 
-                        pdf_output = BytesIO()
-                        pdf.output(pdf_output, 'F')
-                        pdf_output.seek(0)
-                        b64 = base64.b64encode(pdf_output.read()).decode()
+                        pdf_output = pdf.output(dest='S').encode('latin1')  # ✅ 문자열로 추출하여 바이너리 인코딩
+                        b64 = base64.b64encode(pdf_output).decode()
                         href = f'<a href="data:application/octet-stream;base64,{b64}" download="{st.session_state.last_saved_data["name"]}_{st.session_state.last_saved_data["visit_date"]}_chart.pdf">📄 PDF 다운로드</a>'
                         st.markdown(href, unsafe_allow_html=True)
 
