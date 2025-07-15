@@ -168,7 +168,7 @@ def app():
                                     self.multi_cell(0, 10, f"{k}: {v}")
                                 self.ln()
 
-                        FONT_PATH = os.path.join(os.path.dirname(__file__), "NanumGothic.ttf")
+                        FONT_PATH = "NanumGothic.ttf"
                         pdf = PDF()
                         pdf.add_page()
                         pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
