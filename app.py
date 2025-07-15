@@ -25,23 +25,42 @@ if "user" not in st.session_state:
 if "login_success" not in st.session_state:
     st.session_state.login_success = False
 
+# 회원가입 함수 추가
+def signup():
+    st.subheader("🔐 회원가입")
+    email = st.text_input("이메일", key="signup_email")
+    password = st.text_input("비밀번호", type="password", key="signup_pw")
+
+    if st.button("회원가입"):
+        try:
+            auth.create_user_with_email_and_password(email, password)
+            st.success("✅ 회원가입 성공! 로그인 해주세요.")
+        except Exception as e:
+            st.error(f"❌ 회원가입 실패: {e}")
+
 def login():
     st.title("🧪 환자 차트 기록 시스템 olio")
-    email = st.text_input("이메일")
-    password = st.text_input("비밀번호", type="password")
+    menu = st.radio("메뉴 선택", ["로그인", "회원가입"])
 
-    if st.button("로그인"):
-        try:
-            user = auth.sign_in_with_email_and_password(email, password)
-            st.session_state.user = user
-            st.session_state.login_success = True
-            st.rerun()
-        except Exception as e:
-            st.session_state.login_success = False
-            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+    if menu == "로그인":
+        email = st.text_input("이메일")
+        password = st.text_input("비밀번호", type="password")
 
-    if st.session_state.login_success:
-        st.success("✅ 로그인 성공!")
+        if st.button("로그인"):
+            try:
+                user = auth.sign_in_with_email_and_password(email, password)
+                st.session_state.user = user
+                st.session_state.login_success = True
+                st.rerun()
+            except Exception as e:
+                st.session_state.login_success = False
+                st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+
+        if st.session_state.login_success:
+            st.success("✅ 로그인 성공!")
+
+    elif menu == "회원가입":
+        signup()
 
 def app():
     st.title("🧪 환자 차트 기록 시스템 olio")
