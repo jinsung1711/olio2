@@ -21,17 +21,20 @@ db = firebase.database()
 
 # 로그인 함수
 def login():
-    st.title("🔐차트 기록 시스템 olio")
+    st.title("🔐 로그인")
 
     email = st.text_input("이메일")
     password = st.text_input("비밀번호", type="password")
 
     if st.button("로그인"):
+        if not email or not password:
+            st.warning("⚠ 이메일과 비밀번호를 모두 입력하세요.")
+            return
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.user = user
-            st.experimental_rerun()  # 로그인 성공 시 앱 재실행
-        except:
+            st.experimental_rerun()
+        except Exception as e:
             st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
 
 # 메인 앱 함수
@@ -39,7 +42,7 @@ def app():
     tab1, tab2 = st.tabs(["📝 새 차팅", "🔍 검색 및 관리"])
 
     with tab1:
-        st.title("📋 차트 기록 시스템")
+        st.title("📋 환자 차트 기록 시스템")
 
         with st.form("chart_form"):
             name = st.text_input("이름")
@@ -74,6 +77,9 @@ def app():
         keyword = st.text_input("이름 또는 생년월일로 검색")
 
         if st.button("검색"):
+            if not keyword.strip():
+                st.warning("⚠ 검색어를 입력하세요.")
+                return
             try:
                 results = db.child("patients").get(st.session_state.user["idToken"]).val()
                 results = {k: v for k, v in results.items() if keyword in v.get("name", "") or keyword in v.get("birth", "")}
