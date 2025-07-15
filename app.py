@@ -21,6 +21,8 @@ db = firebase.database()
 # 세션 초기화
 if "user" not in st.session_state:
     st.session_state.user = None
+if "login_success" not in st.session_state:
+    st.session_state.login_success = False
 
 def login():
     st.title("🩺 환자 차트 기록 시스템 olio")
@@ -31,10 +33,14 @@ def login():
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.user = user
-            st.success("✅ 로그인 성공!")
-            st.experimental_rerun()
+            st.session_state.login_success = True
+            st.rerun()
         except Exception as e:
-            st.error(f"❌ 로그인 실패: {e}")
+            st.session_state.login_success = False
+            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+
+    if st.session_state.login_success:
+        st.success("✅ 로그인 성공!")
 
 def app():
     st.title("🩺 환자 차트 기록 시스템 olio")
@@ -104,7 +110,7 @@ def app():
                                 try:
                                     db.child("patients").child(key).remove(st.session_state.user["idToken"])
                                     st.success("✅ 기록이 삭제되었습니다.")
-                                    st.experimental_rerun()
+                                    st.rerun()
                                 except Exception as e:
                                     st.error(f"❌ 삭제 실패: {e}")
 
