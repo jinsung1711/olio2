@@ -89,12 +89,39 @@ def generate_pdf_bytes(data):
 
         def chapter_body(self, data):
             self.set_font("NanumGothic", "", 12)
-            for k, v in data.items():
-                if isinstance(v, bool):
-                    v = "O" if v else "X"
-                self.multi_cell(0, 10, f"{k}: {v}")
+            order = [
+                "name", "birth", "visit_date",
+                "chief_complaint", "pi", "os", "etc", "prescription",
+                "hypertension", "diabetes", "hyperlipidemia", "heart_disease"
+            ]
+            label_map = {
+                "name": "이름",
+                "birth": "생년월일",
+                "visit_date": "내원일",
+                "chief_complaint": "주호소",
+                "pi": "PI",
+                "os": "OS",
+                "etc": "기타 소견",
+                "prescription": "처방",
+                "hypertension": "고혈압",
+                "diabetes": "당뇨",
+                "hyperlipidemia": "고지혈증",
+                "heart_disease": "심장 질환"
+            }
+
+            for key in order:
+                val = data.get(key, "")
+                if isinstance(val, bool):
+                    val = "O" if val else "X"
+                self.multi_cell(0, 10, f"{label_map[key]}: {val}")
             self.ln()
 
+    FONT_PATH = "NanumGothic.ttf"
+    pdf = PDF()
+    pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+    pdf.add_page()
+    pdf.chapter_body(data)
+    return pdf.output(dest="S").encode("latin1")
     FONT_PATH = "NanumGothic.ttf"
     pdf = PDF()
     pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
