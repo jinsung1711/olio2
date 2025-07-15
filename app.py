@@ -22,6 +22,9 @@ db = firebase.database()
 if "user" not in st.session_state:
     st.session_state.user = None
 
+if "login_error" not in st.session_state:
+    st.session_state.login_error = False
+
 def login():
     st.title("🩺 환자 차트 기록 시스템 olio")
     email = st.text_input("이메일")
@@ -31,10 +34,14 @@ def login():
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.user = user
-            st.success("✅ 로그인 성공!")
-            st.rerun()
+            st.session_state.refreshToken = user["refreshToken"]
+            st.experimental_rerun()
         except:
-            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+            st.session_state.login_error = True
+
+    if st.session_state.login_error:
+        st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+        st.session_state.login_error = False
 
 def app():
     st.title("🩺 환자 차트 기록 시스템 olio")
@@ -101,9 +108,12 @@ def app():
                             st.write(f"💊 처방: {r.get('prescription', '')}")
 
                             if st.button(f"❌ 삭제하기 - {r.get('name', '')}", key=f"delete_{key}"):
-                                db.child("patients").child(key).remove(st.session_state.user["idToken"])
-                                st.success("✅ 기록이 삭제되었습니다.")
-                                st.rerun()
+                                try:
+                                    db.child("patients").child(key).remove(st.session_state.user["idToken"])
+                                    st.success("✅ 기록이 삭제되었습니다.")
+                                    st.experimental_rerun()
+                                except Exception as e:
+                                    st.error(f"❌ 삭제 실패: {e}")
 
             except Exception as e:
                 st.error(f"❌ 검색 실패: {e}")
