@@ -2,3 +2,5 @@ streamlit==1.46.0
 pyrebase4==4.8.0
 requests
 pandas
+gcloud
+oauth2client
