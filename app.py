@@ -98,7 +98,7 @@ def generate_pdf_bytes(data):
                 "name": "이름",
                 "birth": "생년월일",
                 "visit_date": "내원일",
-                "chief_complaint": "주호소",
+                "chief_complaint": "CC",
                 "pi": "PI",
                 "os": "OS",
                 "etc": "기타 소견",
