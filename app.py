@@ -44,7 +44,8 @@ def signup():
         try:
             user = auth.create_user_with_email_and_password(email, password)
             user_id = user["localId"]
-            db.child("users").child(user_id).set({"name": name, "email": email})
+            id_token = user["idToken"]
+            db.child("users").child(user_id).set({"name": name, "email": email}, token=id_token)
             st.success("✅ 회원가입 성공! 로그인 해주세요.")
         except Exception as e:
             st.error(f"❌ 회원가입 실패: {e}")
@@ -56,8 +57,9 @@ def delete_account():
     if confirm:
         try:
             user_id = st.session_state.user["localId"]
-            db.child("users").child(user_id).remove(st.session_state.user["idToken"])
-            db.child("patients").child(user_id).remove(st.session_state.user["idToken"])
+            id_token = st.session_state.user["idToken"]
+            db.child("users").child(user_id).remove(token=id_token)
+            db.child("patients").child(user_id).remove(token=id_token)
             st.session_state.user = None
             st.session_state.login_success = False
             st.session_state.user_name = ""
@@ -66,38 +68,7 @@ def delete_account():
         except Exception as e:
             st.error(f"❌ 탈퇴 실패: {e}")
 
-def login():
-    st.title("🧪 환자 차트 기록 시스템 olio")
-    menu = st.radio("메뉴 선택", ["로그인", "회원가입"])
-
-    if menu == "로그인":
-        email = st.text_input("이메일")
-        password = st.text_input("비밀번호", type="password")
-
-        login_clicked = st.button("로그인")
-
-        if login_clicked:
-            try:
-                user = auth.sign_in_with_email_and_password(email, password)
-                st.session_state.user = user
-                st.session_state.login_success = True
-                st.session_state.login_error = False
-                user_id = user["localId"]
-                user_info = db.child("users").child(user_id).get().val()
-                if user_info and "name" in user_info:
-                    st.session_state.user_name = user_info["name"]
-                st.rerun()
-            except Exception as e:
-                st.session_state.login_success = False
-                st.session_state.login_error = True
-                st.rerun()
-
-        if st.session_state.login_success:
-            st.success(f"✅ 로그인 성공! {st.session_state.user_name}님 환영합니다.")
-
-    elif menu == "회원가입":
-        signup()
-
+# PDF 저장 함수
 def generate_pdf_bytes(data):
     class PDF(FPDF):
         def header(self):
@@ -120,6 +91,41 @@ def generate_pdf_bytes(data):
     pdf.chapter_body(data)
     return pdf.output(dest="S").encode("latin1")
 
+# 로그인 함수 정의
+def login():
+    st.title("🧪 환자 차트 기록 시스템 olio")
+    menu = st.radio("메뉴 선택", ["로그인", "회원가입"])
+
+    if menu == "로그인":
+        email = st.text_input("이메일")
+        password = st.text_input("비밀번호", type="password")
+
+        login_clicked = st.button("로그인")
+
+        if login_clicked:
+            try:
+                user = auth.sign_in_with_email_and_password(email, password)
+                st.session_state.user = user
+                st.session_state.login_success = True
+                st.session_state.login_error = False
+                user_id = user["localId"]
+                id_token = user["idToken"]
+                user_info = db.child("users").child(user_id).get(token=id_token).val()
+                if user_info and "name" in user_info:
+                    st.session_state.user_name = user_info["name"]
+                st.rerun()
+            except Exception as e:
+                st.session_state.login_success = False
+                st.session_state.login_error = True
+                st.rerun()
+
+        if st.session_state.login_success:
+            st.success(f"✅ 로그인 성공! {st.session_state.user_name}님 환영합니다.")
+
+    elif menu == "회원가입":
+        signup()
+
+# 앱 메인 실행 함수
 def app():
     st.title("🧪 환자 차트 기록 시스템 olio")
 
@@ -129,6 +135,7 @@ def app():
     tab1, tab2, tab3, tab4 = st.tabs(["📄 차팅", "🔍 검색", "📋 환자 리스트", "⚠️ 회원 탈퇴"])
 
     user_id = st.session_state.user["localId"]
+    id_token = st.session_state.user["idToken"]
 
     with tab1:
         st.subheader("📝 새 차트 작성")
@@ -165,7 +172,7 @@ def app():
                     "heart_disease": hd
                 }
                 try:
-                    db.child("patients").child(user_id).push(data, st.session_state.user["idToken"])
+                    db.child("patients").child(user_id).push(data, token=id_token)
                     st.session_state.last_saved_data = data
                     st.success("✅ 저장 완료")
                 except Exception as e:
@@ -175,7 +182,7 @@ def app():
         st.subheader("🔍 환자 검색 및 기록 보기")
         search_name = st.text_input("🔎 검색할 환자 이름")
         if st.button("검색하기"):
-            results = db.child("patients").child(user_id).get(st.session_state.user["idToken"]).val()
+            results = db.child("patients").child(user_id).get(token=id_token).val()
             if results:
                 filtered = {k: v for k, v in results.items() if v.get("name") == search_name}
                 if not filtered:
@@ -186,16 +193,10 @@ def app():
                 else:
                     for key, r in filtered.items():
                         with st.expander(f"👤 {r.get('name', '')} ({r.get('birth', '')})"):
-                            st.write(f"🗓 내원일: {r.get('visit_date', '')}")
-                            st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
-                            st.write(f"📋 PI: {r.get('pi', '')}")
-                            st.write(f"🔍 OS: {r.get('os', '')}")
-                            st.write(f"🗒 기타 소견: {r.get('etc', '')}")
-                            st.write(f"💊 처방: {r.get('prescription', '')}")
-                            st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
-                            st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
-                            st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
-                            st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
+                            for label, value in r.items():
+                                if isinstance(value, bool):
+                                    value = "✅" if value else "❌"
+                                st.write(f"{label}: {value}")
 
                             pdf_bytes = generate_pdf_bytes(r)
                             filename = f"{r.get('name', 'patient')}_{r.get('visit_date', 'visit')}_chart.pdf"
@@ -209,7 +210,7 @@ def app():
 
     with tab3:
         st.subheader("📋 전체 환자 리스트")
-        results = db.child("patients").child(user_id).get(st.session_state.user["idToken"]).val()
+        results = db.child("patients").child(user_id).get(token=id_token).val()
         if results:
             grouped = defaultdict(list)
             for key, r in results.items():
@@ -220,16 +221,10 @@ def app():
                 with st.expander(f"👤 {name} ({birth}) - {len(entries)}건"):
                     for key, r in entries:
                         st.markdown("---")
-                        st.write(f"🗓 내원일: {r.get('visit_date', '')}")
-                        st.write(f"📋 주호소: {r.get('chief_complaint', '')}")
-                        st.write(f"📋 PI: {r.get('pi', '')}")
-                        st.write(f"🔍 OS: {r.get('os', '')}")
-                        st.write(f"🗒 기타 소견: {r.get('etc', '')}")
-                        st.write(f"💊 처방: {r.get('prescription', '')}")
-                        st.write(f"🩺 고혈압: {'✅' if r.get('hypertension') else '❌'}")
-                        st.write(f"🩺 당뇨: {'✅' if r.get('diabetes') else '❌'}")
-                        st.write(f"🩺 고지혈증: {'✅' if r.get('hyperlipidemia') else '❌'}")
-                        st.write(f"❤️ 심장 질환: {'✅' if r.get('heart_disease') else '❌'}")
+                        for label, value in r.items():
+                            if isinstance(value, bool):
+                                value = "✅" if value else "❌"
+                            st.write(f"{label}: {value}")
 
     with tab4:
         delete_account()
