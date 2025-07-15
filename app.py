@@ -6,6 +6,7 @@ from collections import defaultdict
 from fpdf import FPDF
 from io import BytesIO
 import base64
+import os
 
 # Firebase 설정
 firebaseConfig = {
@@ -145,44 +146,47 @@ def app():
                     db.child("patients").child(user_id).push(data, st.session_state.user["idToken"])
                     st.success("✅ 저장 완료")
 
-                    class PDF(FPDF):
-                        def header(self):
-                            self.set_font("Arial", "B", 14)
-                            self.cell(200, 10, "환자 차트 기록", ln=True, align="C")
-                            self.ln(10)
+                    # PDF 다운로드 버튼 위치 조정
+                    pdf_button = st.empty()
+                    if pdf_button.button("📄 PDF로 저장"):
+                        class PDF(FPDF):
+                            def header(self):
+                                self.set_font("NanumGothic", "", 14)
+                                self.cell(200, 10, "환자 차트 기록", ln=True, align="C")
+                                self.ln(10)
 
-                        def chapter_body(self, data):
-                            self.set_font("Arial", "", 12)
-                            for k, v in data.items():
-                                if isinstance(v, bool):
-                                    v = "O" if v else "X"
-                                self.multi_cell(0, 10, f"{k}: {v}")
-                            self.ln()
+                            def chapter_body(self, data):
+                                self.set_font("NanumGothic", "", 12)
+                                for k, v in data.items():
+                                    if isinstance(v, bool):
+                                        v = "O" if v else "X"
+                                    self.multi_cell(0, 10, f"{k}: {v}")
+                                self.ln()
 
-                    pdf_data = {
-                        "이름": name,
-                        "생년월일": birth,
-                        "내원일": visit_date,
-                        "주호소": cc,
-                        "PI": pi,
-                        "OS": os,
-                        "기타 소견": etc,
-                        "처방": prescription,
-                        "고혈압": ht,
-                        "당뇨": dm,
-                        "고지혈증": hl,
-                        "심장 질환": hd
-                    }
+                        FONT_PATH = os.path.join(os.path.dirname(__file__), "NanumGothic.ttf")
+                        pdf = PDF()
+                        pdf.add_page()
+                        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+                        pdf.chapter_body({
+                            "이름": name,
+                            "생년월일": birth,
+                            "내원일": visit_date,
+                            "주호소": cc,
+                            "PI": pi,
+                            "OS": os,
+                            "기타 소견": etc,
+                            "처방": prescription,
+                            "고혈압": ht,
+                            "당뇨": dm,
+                            "고지혈증": hl,
+                            "심장 질환": hd
+                        })
 
-                    pdf = PDF()
-                    pdf.add_page()
-                    pdf.chapter_body(pdf_data)
-
-                    pdf_output = BytesIO()
-                    pdf.output(pdf_output)
-                    b64 = base64.b64encode(pdf_output.getvalue()).decode()
-                    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{name}_{visit_date}_chart.pdf">📄 PDF 다운로드</a>'
-                    st.markdown(href, unsafe_allow_html=True)
+                        pdf_output = BytesIO()
+                        pdf.output(pdf_output)
+                        b64 = base64.b64encode(pdf_output.getvalue()).decode()
+                        href = f'<a href="data:application/octet-stream;base64,{b64}" download="{name}_{visit_date}_chart.pdf">📄 PDF 다운로드</a>'
+                        st.markdown(href, unsafe_allow_html=True)
 
                 except Exception as e:
                     st.error(f"❌ 저장 실패: {e}")
