@@ -24,6 +24,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "login_success" not in st.session_state:
     st.session_state.login_success = False
+if "login_error" not in st.session_state:
+    st.session_state.login_error = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 
@@ -38,10 +40,27 @@ def signup():
         try:
             user = auth.create_user_with_email_and_password(email, password)
             user_id = user["localId"]
-            db.child("users").child(user_id).set({"name": name})
+            db.child("users").child(user_id).set({"name": name, "email": email})
             st.success("✅ 회원가입 성공! 로그인 해주세요.")
         except Exception as e:
             st.error(f"❌ 회원가입 실패: {e}")
+
+# 회원 탈퇴 함수 추가
+def delete_account():
+    st.subheader("⚠️ 회원 탈퇴")
+    confirm = st.checkbox("정말로 탈퇴하시겠습니까?")
+    if confirm:
+        try:
+            user_id = st.session_state.user["localId"]
+            db.child("users").child(user_id).remove(st.session_state.user["idToken"])
+            db.child("patients").child(user_id).remove(st.session_state.user["idToken"])
+            st.session_state.user = None
+            st.session_state.login_success = False
+            st.session_state.user_name = ""
+            st.success("✅ 회원 탈퇴 완료")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ 탈퇴 실패: {e}")
 
 def login():
     st.title("🧪 환자 차트 기록 시스템 olio")
@@ -51,11 +70,14 @@ def login():
         email = st.text_input("이메일")
         password = st.text_input("비밀번호", type="password")
 
-        if st.button("로그인"):
+        login_clicked = st.button("로그인")
+
+        if login_clicked:
             try:
                 user = auth.sign_in_with_email_and_password(email, password)
                 st.session_state.user = user
                 st.session_state.login_success = True
+                st.session_state.login_error = False
                 user_id = user["localId"]
                 user_info = db.child("users").child(user_id).get().val()
                 if user_info and "name" in user_info:
@@ -63,10 +85,13 @@ def login():
                 st.rerun()
             except Exception as e:
                 st.session_state.login_success = False
-                st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+                st.session_state.login_error = True
 
         if st.session_state.login_success:
             st.success(f"✅ 로그인 성공! {st.session_state.user_name}님 환영합니다.")
+        elif st.session_state.login_error:
+            st.error("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요")
+            st.session_state.login_error = False
 
     elif menu == "회원가입":
         signup()
@@ -77,7 +102,7 @@ def app():
     if st.session_state.user_name:
         st.markdown(f"### 👤 사용자: {st.session_state.user_name}")
 
-    tab1, tab2, tab3 = st.tabs(["📄 차팅", "🔍 검색", "📋 환자 리스트"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📄 차팅", "🔍 검색", "📋 환자 리스트", "⚠️ 회원 탈퇴"])
 
     user_id = st.session_state.user["localId"]
 
@@ -173,6 +198,9 @@ def app():
                 st.info("등록된 환자가 없습니다.")
         except Exception as e:
             st.error(f"❌ 불러오기 실패: {e}")
+
+    with tab4:
+        delete_account()
 
 # 실행
 if st.session_state.user:
