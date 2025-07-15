@@ -175,8 +175,9 @@ def app():
                         pdf.chapter_body(st.session_state.last_saved_data)
 
                         pdf_output = BytesIO()
-                        pdf.output(pdf_output)
-                        b64 = base64.b64encode(pdf_output.getvalue()).decode()
+                        pdf.output(pdf_output, 'F')
+                        pdf_output.seek(0)
+                        b64 = base64.b64encode(pdf_output.read()).decode()
                         href = f'<a href="data:application/octet-stream;base64,{b64}" download="{st.session_state.last_saved_data["name"]}_{st.session_state.last_saved_data["visit_date"]}_chart.pdf">📄 PDF 다운로드</a>'
                         st.markdown(href, unsafe_allow_html=True)
 
