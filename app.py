@@ -2,6 +2,7 @@ import streamlit as st
 import pyrebase
 import datetime
 import time
+from collections import defaultdict
 
 # Firebase 설정
 firebaseConfig = {
@@ -25,7 +26,7 @@ if "login_success" not in st.session_state:
     st.session_state.login_success = False
 
 def login():
-    st.title("🩺 환자 차트 기록 시스템 olio")
+    st.title("🧪 환자 차트 기록 시스템 olio")
     email = st.text_input("이메일")
     password = st.text_input("비밀번호", type="password")
 
@@ -43,9 +44,9 @@ def login():
         st.success("✅ 로그인 성공!")
 
 def app():
-    st.title("🩺 환자 차트 기록 시스템 olio")
+    st.title("🧪 환자 차트 기록 시스템 olio")
 
-    tab1, tab2 = st.tabs(["📄 차팅", "🔍 검색"])
+    tab1, tab2, tab3 = st.tabs(["📄 차팅", "🔍 검색", "📋 환자 리스트"])
 
     with tab1:
         st.subheader("📝 새 차트 작성")
@@ -116,6 +117,25 @@ def app():
 
             except Exception as e:
                 st.error(f"❌ 검색 실패: {e}")
+
+    with tab3:
+        st.subheader("📋 전체 환자 리스트")
+        try:
+            all_data = db.child("patients").get(st.session_state.user["idToken"]).val()
+            grouped_data = defaultdict(list)
+
+            if all_data:
+                for key, record in all_data.items():
+                    grouped_data[record.get("name", "")].append(record)
+
+                for name, records in grouped_data.items():
+                    with st.expander(f"👤 {name} ({len(records)}건)"):
+                        for r in records:
+                            st.markdown(f"- 생년월일: {r.get('birth', '')} | 내원일: {r.get('visit_date', '')}")
+            else:
+                st.info("등록된 환자가 없습니다.")
+        except Exception as e:
+            st.error(f"❌ 불러오기 실패: {e}")
 
 # 실행
 if st.session_state.user:
